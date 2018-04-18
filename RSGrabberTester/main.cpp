@@ -18,25 +18,55 @@ int main(int argc, char *argv[])
     std::string qsIniFile = "CameraThreadViewer.ini";
     GrabberRS grabber(qsIniFile);
     grabber.start();
-    //grabber.startGrabbing();
+
 
     int width = 640;
     int height = 480;
     int count = 0;
-    int bufferSize = width*height*2; // 16 bit pixels
-    qDebug()<<"Buffer size" << bufferSize;
+    int depthBufferSize = width*height*2; // 16 bit pixels
+    int colorBufferSize = width*height*3; // 24 bit color pixels BGR
+    bool depthImage = 1;
+
+
     while(true){
+        if(depthImage){
+
         Mat openDepth((Size(width, height)), CV_16UC1);
+         Mat openDepthResized8(height,width,CV_8UC1);
         unsigned short *depthImgPtr = (unsigned short*)openDepth.data;
-        int out = grabber.getImage(depthImgPtr,bufferSize,1000);
+        int out = grabber.getImage(depthImgPtr,depthBufferSize,1000);
         if(out==1){
             count = count + 1;
+            qDebug()<<count;
         }
-         qDebug()<<count;
+
          if(!openDepth.empty())
-             cv::imshow(WINDOW_NAME_1,openDepth);
+
+             openDepth.convertTo(openDepthResized8,CV_8UC1,0.00390625);
+             //openDepthResized8 = 255-openDepthResized8;
+             cv::imshow(WINDOW_NAME_1,openDepthResized8);
         cv::waitKey(30);
 
-    }
+        }
+
+        if(!depthImage){
+            Mat openColor((Size(width, height)), CV_8UC3);
+            unsigned short *colorImgPtr = (unsigned short*)openColor.data;
+            int out = grabber.getImage(colorImgPtr,colorBufferSize,1000);
+            if(out==1){
+                count = count + 1;
+                 qDebug()<<count;
+            }
+
+             if(!openColor.empty())
+
+                  cv::cvtColor(openColor,openColor,COLOR_BGR2RGB);
+                 cv::imshow(WINDOW_NAME_1,openColor);
+            cv::waitKey(30);
+
+            }
+     }
+
+
     return a.exec();
 }
