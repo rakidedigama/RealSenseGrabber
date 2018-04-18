@@ -1,0 +1,12 @@
+#ifndef GRABBERLIB_GLOBAL_H
+#define GRABBERLIB_GLOBAL_H
+
+#include <QtCore/qglobal.h>
+
+#if defined(GRABBERLIB_LIBRARY)
+#  define GRABBERLIBSHARED_EXPORT Q_DECL_EXPORT
+#else
+#  define GRABBERLIBSHARED_EXPORT Q_DECL_IMPORT
+#endif
+
+#endif // GRABBERLIB_GLOBAL_H
