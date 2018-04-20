@@ -13,7 +13,8 @@
 GrabberRS::GrabberRS(std::string sIniFile): logStream(std::cout,"log_GrabberRSLib")
 {
     m_sIni = sIniFile;
-    m_bStopRequested = false;
+//    m_bStopRequested = false;
+      m_bStopRequested = true;
     m_GrabState = STOPPED;
 
     m_BufferHeader.m_uImageHeight = 0;
@@ -36,13 +37,17 @@ GrabberRS::~GrabberRS()
 class RealSenseCamera
 {
 public:
-    RealSenseCamera::RealSenseCamera(rs2::pipeline *p){
-       pipe = p;
-        profile = pipe->start();
+    RealSenseCamera::RealSenseCamera(){
+
 
     }
+    void RealSenseCamera::add_device(rs2::device *device){
+        dev = device;
+    }
 
-    void RealSenseCamera::initialize(){
+    void RealSenseCamera::initialize(rs2::pipeline *p){
+        pipe = p;
+         profile = pipe->start();
         depth_scale = get_depth_scale(profile.get_device());
         align_to = find_stream_to_align(profile.get_streams());
 
@@ -128,6 +133,14 @@ public:
         return frameset;
     }
 
+    rs2::device RealSenseCamera::get_current_device(){
+        dev = &profile.get_device();
+    }
+    rs2::pipeline RealSenseCamera::get_pipe(){
+        return *pipe;
+    }
+
+    rs2::device *dev;
     rs2::pipeline *pipe;
     rs2::pipeline_profile profile;
     float depth_scale;
@@ -137,96 +150,164 @@ public:
 
 void GrabberRS::run(){
 
+    std::cout<<"Starting Grabber"<< std::endl;
     using namespace std;
 
-    // Connect with device
-    rs2::context ctx;
-    auto list = ctx.query_devices(); // Get a snapshot of currently connected devices
-    while (list.size() == 0){
-        //throw std::runtime_error("No device detected. Is it plugged in?");
-        std::cout<<"No device detected. Grabber not started"<< std::endl;
-        m_bStopRequested = true;
-    }
+//    // Connect with device
+
+
+
+
     //rs2::device dev = list.front();
 
 
 
-    rs2::pipeline pipe;
+    rs2::context ctx;
 
-    RealSenseCamera camera(&pipe);
-    camera.initialize();
-    rs2::align align(camera.get_stream_to_align());
-    rs2::pipeline_profile profile = camera.get_profile();
+//    rs2::error error(rs2_error err);
+//    rs2::device_hub hub =  rs2_create_device_hub(&ctx,&error);
 
-    std::cout<<"Start streaming" << std::endl;
+//    rs2_device_hub_wait_for_device(ctx,hub,error);
+//    int connected = rs2_device_hub_is_device_connected(hub,dev,error);
 
-  while(!m_bStopRequested) // Application still alive?
-  {
-        std::cout<<"Getting frames"<<endl;
+    std::cout<<"Starting Grabber"<< std::endl;
 
-      rs2::frameset frameset = camera.get_frameset();
-      int framecount = frameset.size();
-       std::cout<<"Got " << framecount << "frames"<<endl;
-
-      if (camera.profile_changed(pipe.get_active_profile().get_streams(), profile.get_streams()))
-      {
-          //If the profile was changed, update the align object, and also get the new device's depth scale
-          profile = pipe.get_active_profile();
-          rs2::align(camera.get_stream_to_align());
-      }     
-
-      //Get processed aligned frames
-      auto processed = align.process(frameset);
-
-      // Trying to get both other and aligned depth frames
-      rs2::video_frame other_frame = processed.first(camera.get_stream_to_align()); // color
-      rs2::depth_frame aligned_depth_frame = processed.get_depth_frame(); // depth
-
-      int width_depth = aligned_depth_frame.get_width();
-      int height_depth = aligned_depth_frame.get_height();
-      int bitsPerPixel_depth = aligned_depth_frame.get_bits_per_pixel();
-
-      int width_color = other_frame.get_width();
-      int height_color = other_frame.get_height();
-      int bitsPerPixel_color = other_frame.get_bits_per_pixel();
-
-      m_BufferHeader.m_uImageHeight = height_depth;
-      m_BufferHeader.m_uImageWidth = width_depth;
-
-      // conversion from const void* to unsigned char*
-      unsigned char* depth_frame_data = reinterpret_cast<unsigned char*>(const_cast<void*>(aligned_depth_frame.get_data()));
-      unsigned char* color_frame_data = reinterpret_cast<unsigned char*>(const_cast<void*>(other_frame.get_data()));
-
-      std::cout << "Depth frames : " <<"width: " << width_depth  << "height: " << height_depth << "bits per pixel: " << bitsPerPixel_depth <<endl;
-      std::cout << "Color frames : " <<"width: " << width_color << "height: " << height_color << "bits per pixel: " << bitsPerPixel_color << endl;
-      std::cout << "Depth bytes " << aligned_depth_frame.get_bytes_per_pixel();
-
-      //m_pBuffer = new unsigned char[m_BufferHeader.m_uSlots * m_BufferHeader.m_uSizeOfFrame];
-      m_BufferHeader.m_uSizeOfFrame = 5*width_depth*height_depth; // 2 bytes for depth, 3 bytes for color
-      m_pBuffer = new unsigned char[1 *(m_BufferHeader.m_uSizeOfFrame)];
+    while(true){
 
 
-      if(width_depth!=0){
-          std::cout<<"Frame not empty";
-          std::cout<<"Frame Size : " << bitsPerPixel_depth*width_depth*height_depth;
-          memcpy(m_pBuffer,depth_frame_data,(2*width_depth*height_depth));
-          memcpy(m_pBuffer + (2*width_depth*height_depth),color_frame_data,(3*width_depth*height_depth));
-
-          std::cout<<"Frames copied to buffer" << endl;
-          m_GrabState = GRABBING;
-
-      }
-      else{
-
-          std::cout<<"Frame EMPTY" <<endl;
-           m_GrabState =STOPPED;
-      }
+    auto list = ctx.query_devices(); // Get a snapshot of currently connected devices
+//    while(m_bStopRequested!=false){
+//        if(list.size()>0){
+//            std::cout<<"Device found.";
+//            dev = list.front();
+//            //camera.add_device(&dev);
+//            std::cout<<"Device added.";
 
 
+//            camera.initialize(&pipe);
+//            std::cout<<"Pipeline intiated.";
+//            m_bStopRequested = false;
+//            std::cout<<"Start streaming" ;
+//        }
+//        else
+//            std::cout<<"CANNOT CONNECT TO DEVICE."<< std::endl;
+//    }
+
+    std::cout<<"Starting Grabber"<< std::endl;
+     std::cout<<"dev size"<< list.size()<<std::endl;
+
+    if(list.size()>1){
+
+        std::cout<<"Device found.";
+         //rs2::device dev = list.front();
+        //camera.add_device(&dev);
+        std::cout<<"Device added.";
+        RealSenseCamera camera;
+        rs2::pipeline pipe;
+
+        camera.initialize(&pipe);
+        std::cout<<"Pipeline intiated.";
+        m_bStopRequested = false;
+        std::cout<<"Start streaming" ;
+
+        rs2::align align(camera.get_stream_to_align());
+        //rs2::pipeline pipe = camera.get_pipe();
+        rs2::pipeline_profile profile = camera.get_profile();
+
+
+        while(!m_bStopRequested) // Application still alive?
+        {
+            try{
+
+              std::cout<<"Getting frames"<<endl;
+
+            rs2::frameset frameset = camera.get_frameset();
+            int framecount = frameset.size();
+             std::cout<<"Got " << framecount << "frames"<<endl;
+
+            if (camera.profile_changed(pipe.get_active_profile().get_streams(), profile.get_streams()))
+            {
+                //If the profile was changed, update the align object, and also get the new device's depth scale
+                profile = pipe.get_active_profile();
+                rs2::align(camera.get_stream_to_align());
+            }
+
+            //Get processed aligned frames
+            auto processed = align.process(frameset);
+
+            // Trying to get both other and aligned depth frames
+            rs2::video_frame other_frame = processed.first(camera.get_stream_to_align()); // color
+            rs2::depth_frame aligned_depth_frame = processed.get_depth_frame(); // depth
+
+            int width_depth = aligned_depth_frame.get_width();
+            int height_depth = aligned_depth_frame.get_height();
+            int bitsPerPixel_depth = aligned_depth_frame.get_bits_per_pixel();
+
+            int width_color = other_frame.get_width();
+            int height_color = other_frame.get_height();
+            int bitsPerPixel_color = other_frame.get_bits_per_pixel();
+
+            m_BufferHeader.m_uImageHeight = height_depth;
+            m_BufferHeader.m_uImageWidth = width_depth;
+
+            // conversion from const void* to unsigned char*
+            unsigned char* depth_frame_data = reinterpret_cast<unsigned char*>(const_cast<void*>(aligned_depth_frame.get_data()));
+            unsigned char* color_frame_data = reinterpret_cast<unsigned char*>(const_cast<void*>(other_frame.get_data()));
+
+            std::cout << "Depth frames : " <<"width: " << width_depth  << "height: " << height_depth << "bits per pixel: " << bitsPerPixel_depth <<endl;
+            std::cout << "Color frames : " <<"width: " << width_color << "height: " << height_color << "bits per pixel: " << bitsPerPixel_color << endl;
+            std::cout << "Depth bytes " << aligned_depth_frame.get_bytes_per_pixel();
+
+            //m_pBuffer = new unsigned char[m_BufferHeader.m_uSlots * m_BufferHeader.m_uSizeOfFrame];
+            m_BufferHeader.m_uSizeOfFrame = 5*width_depth*height_depth; // 2 bytes for depth, 3 bytes for color
+            m_pBuffer = new unsigned char[1 *(m_BufferHeader.m_uSizeOfFrame)];
+
+
+            if(width_depth!=0){
+                std::cout<<"Frame not empty";
+                std::cout<<"Frame Size : " << bitsPerPixel_depth*width_depth*height_depth;
+                memcpy(m_pBuffer,depth_frame_data,(2*width_depth*height_depth));
+                memcpy(m_pBuffer + (2*width_depth*height_depth),color_frame_data,(3*width_depth*height_depth));
+
+                std::cout<<"Frames copied to buffer" << endl;
+                m_GrabState = GRABBING;
+
+            }
+            else{
+
+                std::cout<<"Frame EMPTY" <<endl;
+                 m_GrabState =STOPPED;
+            }
+            throw -1;
+
+            }
+            catch(int e){
+                if(e==-1){
+                    std::cout<<"Exception occured while grabbing"<<endl;
+                    auto list = ctx.query_devices();
+                    if(list.size()<2){
+                        std::cout<<"Device disconnected."<<endl;
+                        m_bStopRequested = true;
+                    }
+                }
+            }
 
 
 
-  }
+        }
+        pipe.stop();
+
+    }
+    else
+        std::cout<<"CANNOT CONNECT TO DEVICE."<< "Reconnecting" <<  std::endl;
+         m_GrabState =STOPPED;
+
+
+    }
+
+
+
+
 
    //return EXIT_SUCCESS;
 

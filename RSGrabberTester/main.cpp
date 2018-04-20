@@ -27,27 +27,32 @@ int main(int argc, char *argv[])
     int colorBufferSize = width*height*3; // 24 bit color pixels BGR
     bool depthImage = 1;
 
-
     while(true){
         if(depthImage){
 
-        Mat openDepth((Size(width, height)), CV_16UC1);
-         Mat openDepthResized8(height,width,CV_8UC1);
-        unsigned short *depthImgPtr = (unsigned short*)openDepth.data;
-        int out = grabber.getImage(depthImgPtr,depthBufferSize,1000);
-        if(out==1){
-            count = count + 1;
-            qDebug()<<count;
+            Mat openDepth((Size(width, height)), CV_16UC1);
+            Mat openDepthResized8(height,width,CV_8UC1);
+            unsigned short *depthImgPtr = (unsigned short*)openDepth.data;
+            int out = grabber.getImage(depthImgPtr,depthBufferSize,1000);
+            qDebug()<<out;
+            if(out==1){
+                count = count + 1;
+                //qDebug()<<count;
+                if(!openDepth.empty()){
+                     openDepth.convertTo(openDepthResized8,CV_8UC1,0.00390625);
+                    //openDepthResized8 = 255-openDepthResized8;
+                    cv::imshow(WINDOW_NAME_1,openDepthResized8);
+                 cv::waitKey(30);
+
+                 }
+             }
+            if(out==-1){
+                qDebug()<<"Reconnect";
+            }
         }
 
-         if(!openDepth.empty())
 
-             openDepth.convertTo(openDepthResized8,CV_8UC1,0.00390625);
-             //openDepthResized8 = 255-openDepthResized8;
-             cv::imshow(WINDOW_NAME_1,openDepthResized8);
-        cv::waitKey(30);
 
-        }
 
         if(!depthImage){
             Mat openColor((Size(width, height)), CV_8UC3);
@@ -56,15 +61,15 @@ int main(int argc, char *argv[])
             if(out==1){
                 count = count + 1;
                  qDebug()<<count;
+                 if(!openColor.empty())
+                       cv::cvtColor(openColor,openColor,COLOR_BGR2RGB);
+                       cv::imshow(WINDOW_NAME_1,openColor);
+                       cv::waitKey(30);
+
+                 }
             }
 
-             if(!openColor.empty())
 
-                  cv::cvtColor(openColor,openColor,COLOR_BGR2RGB);
-                 cv::imshow(WINDOW_NAME_1,openColor);
-            cv::waitKey(30);
-
-            }
      }
 
 
